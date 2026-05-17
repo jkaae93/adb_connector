@@ -255,6 +255,61 @@ class AdbService {
     return ConnectResult.failure(output);
   }
 
+  /// USB 연결된 기기를 WiFi 연결로 전환.
+  /// 1. IP 조회 (명시적 IP가 없으면)
+  /// 2. tcpip 모드로 전환
+  /// 3. WiFi로 연결
+  Future<ConnectResult> switchToWireless({
+    required String serial,
+    String? ip,
+    int port = 5555,
+  }) async {
+    // IP 조회
+    final targetIp = ip ?? await getDeviceIp(serial);
+    if (targetIp == null || targetIp.isEmpty) {
+      return ConnectResult.failure(
+        'IP 주소를 찾을 수 없습니다. 기기가 WiFi에 연결되어 있는지 확인해주세요',
+      );
+    }
+
+    // tcpip 모드로 전환
+    final tcpipOk = await enableTcpip(serial, port);
+    if (!tcpipOk) {
+      return ConnectResult.failure('tcpip 모드 전환 실패');
+    }
+
+    // 기기가 TCP 모드로 재시작할 시간 대기
+    await Future<void>.delayed(const Duration(seconds: 2));
+
+    // 연결 시도
+    final result = await connect(targetIp, port);
+    if (result.success) {
+      return ConnectResult.ok('WiFi 연결 성공: $targetIp:$port');
+    }
+    return ConnectResult.failure(
+      'WiFi 연결 실패 - 기기가 같은 WiFi에 있는지 확인해주세요',
+    );
+  }
+
+  /// logcat을 실시간으로 스트리밍. [identifier]는 시리얼 또는 "ip:port".
+  /// 반환된 Process를 kill()하면 스트리밍이 중단됩니다.
+  Future<Process> startLogcat(String identifier) async {
+    return Process.start(_adbPath, [
+      '-s',
+      identifier,
+      'logcat',
+      '-v',
+      'threadtime',
+      '-T',
+      '1',
+    ]);
+  }
+
+  /// 기기의 logcat 버퍼를 비움.
+  Future<void> clearLogcat(String identifier) async {
+    await _run(['-s', identifier, 'logcat', '-c']);
+  }
+
   Future<ConnectResult> connectWithRetry({
     required String ip,
     int port = 5555,

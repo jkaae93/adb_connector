@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a73e8"/>
+      <stop offset="100%" style="stop-color:#0d47a1"/>
+    </linearGradient>
+    <linearGradient id="android" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#3ddc84"/>
+      <stop offset="100%" style="stop-color:#00c853"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded rect -->
+  <rect x="0" y="0" width="512" height="512" rx="100" ry="100" fill="url(#bg)"/>
+
+  <!-- Android head -->
+  <!-- Head dome -->
+  <path d="M 160 270 L 160 220 Q 160 140 256 140 Q 352 140 352 220 L 352 270 Z"
+        fill="url(#android)" />
+
+  <!-- Left eye -->
+  <circle cx="210" cy="205" r="14" fill="white"/>
+  <!-- Right eye -->
+  <circle cx="302" cy="205" r="14" fill="white"/>
+
+  <!-- Left antenna -->
+  <line x1="200" y1="138" x2="178" y2="100" stroke="#3ddc84" stroke-width="10" stroke-linecap="round"/>
+  <!-- Right antenna -->
+  <line x1="312" y1="138" x2="334" y2="100" stroke="#3ddc84" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Body -->
+  <rect x="160" y="278" width="192" height="120" rx="16" fill="url(#android)"/>
+
+  <!-- Left arm -->
+  <rect x="120" y="286" width="30" height="90" rx="15" fill="url(#android)"/>
+  <!-- Right arm -->
+  <rect x="362" y="286" width="30" height="90" rx="15" fill="url(#android)"/>
+
+  <!-- WiFi signal arcs (bottom right area) -->
+  <!-- Outer arc -->
+  <path d="M 330 370 Q 395 370 395 430"
+        fill="none" stroke="white" stroke-width="12" stroke-linecap="round" opacity="0.6"/>
+  <!-- Middle arc -->
+  <path d="M 346 386 Q 395 386 395 430"
+        fill="none" stroke="white" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+  <!-- Inner arc -->
+  <path d="M 362 402 Q 395 402 395 430"
+        fill="none" stroke="white" stroke-width="12" stroke-linecap="round" opacity="1.0"/>
+  <!-- Dot -->
+  <circle cx="395" cy="435" r="9" fill="white"/>
+</svg>

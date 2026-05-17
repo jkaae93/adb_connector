@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:adb_connector/models/saved_device.dart';
+import 'package:adb_connector/pages/logcat_page.dart';
 import 'package:adb_connector/services/adb_service.dart';
 import 'package:adb_connector/services/device_storage.dart';
 import 'package:adb_connector/widgets/add_device_dialog.dart';
@@ -181,12 +182,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   bool _isDeviceConnected(SavedDevice device) {
-    return _connectedDevices.any((connected) {
-      if (connected.isIpConnection) {
-        return connected.ip == device.ip;
-      }
-      return connected.identifier == device.serialName;
-    });
+    return _isDeviceConnectedViaUsb(device) ||
+        _isDeviceConnectedViaWifi(device);
+  }
+
+  bool _isDeviceConnectedViaUsb(SavedDevice device) {
+    if (device.serialName == null) return false;
+    return _connectedDevices.any(
+      (c) => !c.isIpConnection && c.identifier == device.serialName,
+    );
+  }
+
+  bool _isDeviceConnectedViaWifi(SavedDevice device) {
+    return _connectedDevices.any(
+      (c) => c.isIpConnection && c.ip == device.ip,
+    );
   }
 
   Future<void> _connectDevice(SavedDevice device) async {
@@ -197,6 +207,39 @@ class _HomePageState extends State<HomePage> {
         ip: device.ip,
         port: device.port,
         serialName: device.serialName,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.message),
+            backgroundColor: result.success ? Colors.green : Colors.red,
+          ),
+        );
+        await _refreshConnectedDevices();
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _connectingDeviceIds.remove(device.id));
+      }
+    }
+  }
+
+  Future<void> _switchToWireless(SavedDevice device) async {
+    if (device.serialName == null || device.serialName!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('시리얼 정보가 없어 전환할 수 없습니다')),
+      );
+      return;
+    }
+
+    setState(() => _connectingDeviceIds.add(device.id));
+
+    try {
+      final result = await _adbService.switchToWireless(
+        serial: device.serialName!,
+        ip: device.ip,
+        port: device.port,
       );
 
       if (mounted) {
@@ -259,6 +302,33 @@ class _HomePageState extends State<HomePage> {
       await _storage.addDevice(result);
     }
     await _loadSavedDevices();
+  }
+
+  void _openLogcat(SavedDevice device) {
+    // 연결된 기기 중 해당 SavedDevice와 매치되는 식별자를 찾음
+    final connected = _connectedDevices.firstWhere(
+      (c) {
+        if (c.isIpConnection) return c.ip == device.ip;
+        return c.identifier == device.serialName;
+      },
+      orElse: () => ConnectedDevice(identifier: '', state: ''),
+    );
+
+    if (connected.identifier.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('연결된 기기가 아닙니다')),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LogcatPage(
+          identifier: connected.identifier,
+          deviceName: device.nickname,
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteDevice(SavedDevice device) async {
@@ -370,12 +440,17 @@ class _HomePageState extends State<HomePage> {
                       return DeviceListTile(
                         device: device,
                         isConnected: _isDeviceConnected(device),
+                        isConnectedViaUsb: _isDeviceConnectedViaUsb(device),
+                        isConnectedViaWifi: _isDeviceConnectedViaWifi(device),
                         isConnecting:
                             _connectingDeviceIds.contains(device.id),
                         onConnect: () => _connectDevice(device),
                         onEdit: () => _addOrEditDevice(device: device),
                         onDelete: () => _deleteDevice(device),
                         onDisconnect: () => _disconnectDevice(device),
+                        onLogcat: () => _openLogcat(device),
+                        onSwitchToWireless: () =>
+                            _switchToWireless(device),
                       );
                     },
                   ),

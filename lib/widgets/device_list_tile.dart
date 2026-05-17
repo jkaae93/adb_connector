@@ -6,20 +6,47 @@ class DeviceListTile extends StatelessWidget {
     super.key,
     required this.device,
     required this.isConnected,
+    required this.isConnectedViaUsb,
+    required this.isConnectedViaWifi,
     required this.isConnecting,
     required this.onConnect,
     required this.onEdit,
     required this.onDelete,
     required this.onDisconnect,
+    required this.onLogcat,
+    required this.onSwitchToWireless,
   });
 
   final SavedDevice device;
   final bool isConnected;
+  final bool isConnectedViaUsb;
+  final bool isConnectedViaWifi;
   final bool isConnecting;
   final VoidCallback onConnect;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback onDisconnect;
+  final VoidCallback onLogcat;
+  final VoidCallback onSwitchToWireless;
+
+  String get _statusLabel {
+    if (isConnectedViaUsb && isConnectedViaWifi) return 'USB+WiFi';
+    if (isConnectedViaUsb) return 'USB';
+    if (isConnectedViaWifi) return 'WiFi';
+    return '미연결';
+  }
+
+  Color _statusBgColor() {
+    if (isConnectedViaUsb && !isConnectedViaWifi) return Colors.orange.shade100;
+    if (isConnectedViaWifi) return Colors.green.shade100;
+    return Colors.red.shade50;
+  }
+
+  Color _statusFgColor() {
+    if (isConnectedViaUsb && !isConnectedViaWifi) return Colors.orange.shade900;
+    if (isConnectedViaWifi) return Colors.green.shade800;
+    return Colors.red.shade700;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,18 +70,14 @@ class DeviceListTile extends StatelessWidget {
                 vertical: 2,
               ),
               decoration: BoxDecoration(
-                color: isConnected
-                    ? Colors.green.shade100
-                    : Colors.red.shade50,
+                color: _statusBgColor(),
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                isConnected ? '연결됨' : '미연결',
+                _statusLabel,
                 style: TextStyle(
                   fontSize: 11,
-                  color: isConnected
-                      ? Colors.green.shade800
-                      : Colors.red.shade700,
+                  color: _statusFgColor(),
                 ),
               ),
             ),
@@ -77,7 +100,13 @@ class DeviceListTile extends StatelessWidget {
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               )
-            else if (isConnected)
+            else if (isConnectedViaUsb && !isConnectedViaWifi)
+              FilledButton.icon(
+                onPressed: onSwitchToWireless,
+                icon: const Icon(Icons.wifi, size: 16),
+                label: const Text('WiFi로 전환'),
+              )
+            else if (isConnectedViaWifi)
               TextButton(
                 onPressed: onDisconnect,
                 child: const Text('연결 해제'),
@@ -88,6 +117,11 @@ class DeviceListTile extends StatelessWidget {
                 child: const Text('연결'),
               ),
             const SizedBox(width: 4),
+            IconButton(
+              icon: const Icon(Icons.description_outlined, size: 20),
+              onPressed: isConnected ? onLogcat : null,
+              tooltip: isConnected ? 'Logcat 보기' : '연결 후 사용 가능',
+            ),
             IconButton(
               icon: const Icon(Icons.edit, size: 20),
               onPressed: onEdit,
