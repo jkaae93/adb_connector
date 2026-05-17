@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:adb_connector/models/remote_file_entry.dart';
 import 'package:adb_connector/models/saved_device.dart';
 
 class ConnectResult {
@@ -308,6 +309,75 @@ class AdbService {
   /// 기기의 logcat 버퍼를 비움.
   Future<void> clearLogcat(String identifier) async {
     await _run(['-s', identifier, 'logcat', '-c']);
+  }
+
+  Future<void> openLogcatInTerminal(
+    String identifier, {
+    bool flutterOnly = false,
+  }) async {
+    final logcatArgs = [
+      '-s', identifier,
+      'logcat', '-v', 'color',
+      if (flutterOnly) ...const ['-s', 'flutter'],
+    ];
+    final command = '$_adbPath ${logcatArgs.join(' ')}';
+    await Process.run('osascript', [
+      '-e',
+      'tell application "Terminal" to do script "$command"',
+      '-e',
+      'tell application "Terminal" to activate',
+    ]);
+  }
+
+  Future<ProcessResult> _runNoTimeout(List<String> args) async {
+    if (!isAdbAvailable()) {
+      return ProcessResult(0, 1, '', 'ADB not installed');
+    }
+    return Process.run(_adbPath, args);
+  }
+
+  Future<List<RemoteFileEntry>> listFiles(
+    String identifier,
+    String path,
+  ) async {
+    final result = await _run(['-s', identifier, 'shell', 'ls', '-la', path]);
+    final output = result.stdout as String;
+    final entries = <RemoteFileEntry>[];
+    for (final line in output.split('\n')) {
+      final entry = RemoteFileEntry.parse(line);
+      if (entry != null) entries.add(entry);
+    }
+    return entries;
+  }
+
+  Future<bool> pullFile(
+    String identifier,
+    String remotePath,
+    String localPath,
+  ) async {
+    final result = await _runNoTimeout([
+      '-s',
+      identifier,
+      'pull',
+      remotePath,
+      localPath,
+    ]);
+    return result.exitCode == 0;
+  }
+
+  Future<bool> pushFile(
+    String identifier,
+    String localPath,
+    String remotePath,
+  ) async {
+    final result = await _runNoTimeout([
+      '-s',
+      identifier,
+      'push',
+      localPath,
+      remotePath,
+    ]);
+    return result.exitCode == 0;
   }
 
   Future<ConnectResult> connectWithRetry({

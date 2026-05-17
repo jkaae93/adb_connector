@@ -39,7 +39,10 @@ class DeviceStorage {
 
   Future<void> addDevice(SavedDevice device) async {
     final devices = await loadDevices();
-    final duplicate = devices.any((d) => d.ip == device.ip);
+    final duplicate = devices.any((d) {
+      if (device.isIos) return d.serialName == device.serialName;
+      return d.ip == device.ip;
+    });
     if (duplicate) return;
     devices.add(device);
     await saveDevices(devices);

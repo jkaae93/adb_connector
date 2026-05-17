@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:adb_connector/services/adb_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -35,19 +34,20 @@ class LogLine {
 class LogcatPage extends StatefulWidget {
   const LogcatPage({
     super.key,
-    required this.identifier,
     required this.deviceName,
+    required this.processFactory,
+    this.onClearBuffer,
   });
 
-  final String identifier;
   final String deviceName;
+  final Future<Process> Function() processFactory;
+  final Future<void> Function()? onClearBuffer;
 
   @override
   State<LogcatPage> createState() => _LogcatPageState();
 }
 
 class _LogcatPageState extends State<LogcatPage> {
-  final AdbService _adbService = AdbService();
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _filterController = TextEditingController();
 
@@ -89,7 +89,7 @@ class _LogcatPageState extends State<LogcatPage> {
 
   Future<void> _startLogcat() async {
     try {
-      _process = await _adbService.startLogcat(widget.identifier);
+      _process = await widget.processFactory();
       _stdoutSub = _process!.stdout
           .transform(utf8.decoder)
           .transform(const LineSplitter())
@@ -102,7 +102,7 @@ class _LogcatPageState extends State<LogcatPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('logcat 실행 실패: $e'),
+            content: Text('로그 실행 실패: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -149,11 +149,11 @@ class _LogcatPageState extends State<LogcatPage> {
   }
 
   Future<void> _clearDeviceBuffer() async {
-    await _adbService.clearLogcat(widget.identifier);
+    await widget.onClearBuffer?.call();
     setState(() => _logs.clear());
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('기기 logcat 버퍼를 비웠습니다')),
+        const SnackBar(content: Text('기기 로그 버퍼를 비웠습니다')),
       );
     }
   }
@@ -215,7 +215,7 @@ class _LogcatPageState extends State<LogcatPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Logcat - ${widget.deviceName}'),
+        title: Text('로그 - ${widget.deviceName}'),
         actions: [
           IconButton(
             icon: Icon(_isPaused ? Icons.play_arrow : Icons.pause),
@@ -227,11 +227,12 @@ class _LogcatPageState extends State<LogcatPage> {
             tooltip: '화면 비우기',
             onPressed: _clearLogs,
           ),
-          IconButton(
-            icon: const Icon(Icons.cleaning_services),
-            tooltip: '기기 버퍼 비우기',
-            onPressed: _clearDeviceBuffer,
-          ),
+          if (widget.onClearBuffer != null)
+            IconButton(
+              icon: const Icon(Icons.cleaning_services),
+              tooltip: '기기 버퍼 비우기',
+              onPressed: _clearDeviceBuffer,
+            ),
           IconButton(
             icon: const Icon(Icons.copy),
             tooltip: '전체 복사',
