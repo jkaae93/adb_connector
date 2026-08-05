@@ -83,7 +83,11 @@ class IosService {
     return output
         .split('\n')
         .map((l) => l.trim())
-        .where((l) => l.length == 40)
+        .where(
+          (l) => RegExp(
+            r'^(?:[0-9A-Fa-f]{40}|[0-9A-Fa-f]{8}-[0-9A-Fa-f]{16})$',
+          ).hasMatch(l),
+        )
         .toList();
   }
 
