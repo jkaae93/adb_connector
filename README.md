@@ -2,6 +2,10 @@
 
 Android / iOS 기기를 무선으로 연결하고 관리하는 macOS 데스크톱 앱입니다. `adb connect`, logcat, 파일 전송 같은 명령어를 터미널 없이 GUI 버튼으로 다룰 수 있습니다.
 
+## 다운로드
+
+[ADB Connector v1.0.1 macOS 다운로드](https://github.com/jkaae93/adb_connector/releases/download/v1.0.1/ADB-Connector-v1.0.1-macos.zip)
+
 ## 주요 기능
 
 - **무선 ADB 연결**: 저장된 기기를 버튼 하나로 무선 연결 (`adb connect`)
